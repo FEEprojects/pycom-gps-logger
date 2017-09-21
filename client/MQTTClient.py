@@ -36,8 +36,8 @@ def on_message(client, userdata, msg):
     print dir(msg)
     print msg.topic+" "+str(msg.payload)
     f = open('testing.json', 'a')
-    f.write(datetime.datetime.now())
-    f.write(msg)
+    f.write(str(datetime.datetime.now()))
+    f.write(" " + str(msg.payload) + "\n")
     f.close()
 
 
