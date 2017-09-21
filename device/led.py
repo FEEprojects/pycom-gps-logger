@@ -9,7 +9,7 @@ class RgbWrapper(object):
         self.output = 0x000000
 
     def _set(self):
-        print(hex(self.output))
+        #print(hex(self.output))
         rgbled(self.output)
 
     def red_on(self):
