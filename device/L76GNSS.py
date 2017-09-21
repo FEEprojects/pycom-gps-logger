@@ -37,6 +37,15 @@ class L76GNSS:
             lon_d *= -1
         return(lat_d, lon_d)
 
+    def _convert_coords(self, lat, lat_dir, lon, lon_dir):
+        lat_d = (float(lat) // 100) + ((float(lat) % 100) / 60)
+        lon_d = (float(lon) // 100) + ((float(lon) % 100) / 60)
+        if lat_dir == 'S':
+            lat_d *= -1
+        if lon_dir == 'W':
+            lon_d *= -1
+        return(lat_d, lon_d)
+
     def coordinates(self, debug=False):
         lat_d, lon_d, debug_timeout = None, None, False
         if self.timeout != None:
@@ -63,7 +72,7 @@ class L76GNSS:
                     try:
                         gngll = gngll[:e_idx].decode('ascii')
                         gngll_s = gngll.split(',')
-                        lat_d, lon_d = self._convert_coords(gngll_s)
+                        lat_d, lon_d = self._convert_coords(gngll_s[1], gngll_s[2], gngll_s[3], gngll_s[4])
                     except Exception:
                         pass
                     finally:
@@ -82,8 +91,8 @@ class L76GNSS:
         else:
             return(lat_d, lon_d)
 
-def coordinates_advanced(self, debug=False):
-        lat_d, lon_d, alt, hdop, debug_timeout = None, None, False
+    def coordinates_adv(self, debug=False):
+        lat_d, lon_d, alt, hdop, debug_timeout = None, None, None, None, False
         if self.timeout != None:
             self.chrono.reset()
             self.chrono.start()
@@ -107,14 +116,13 @@ def coordinates_advanced(self, debug=False):
                     try:
                         gpgga = gpgga[:e_idx].decode('ascii')
                         gpgga_s = gpgga.split(',')
-                        print(gpgga_s)
-                        lat_d, lon_d = self._convert_coords(gpgga_s)
-                        alt = gpgga_s[8]
-                        hdop = gpgga_s[7]
+                        lat_d, lon_d = self._convert_coords(gpgga_s[2], gpgga_s[3], gpgga_s[4], gpgga_s[5])
+                        alt = gpgga_s[9]
+                        hdop = gpgga_s[8]
                     except Exception:
                         pass
                     finally:
-                        nmea = nmea[(gngll_idx + e_idx):]
+                        nmea = nmea[(gpgga_idx + e_idx):]
                         gc.collect()
                         break
             else:
