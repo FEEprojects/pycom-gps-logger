@@ -34,13 +34,17 @@ sock.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 sock.setblocking(False)   
 
 while True:
-    (lat, lon) = gps.coordinates()
-    if not lat is None and not lon is None: #We have a GPS fix
+    (lat, lon, alt, hdop) = gps.coordinates_adv()
+ #   lat = 123.456
+ #   lon = 7.89
+ #   alt = 86
+ #   hdop = 4.33
+    if not lat is None and not lon is None and not alt is None and not hdop is None: #We have a GPS fix
         rgb.red_off()
         rgb.green_on()
-        msg = str(lat * 1000000) + " " + str(lon * 1000000)
+        msg = "%d %d %.1f %d" %((lat * 1000000), (lon * 1000000), (float(alt) *1), (float(hdop) *100))
         print(msg)
-        sock.send(msg)
+        sock.send(msg.encode('utf-8'))  
         time.sleep(0.5)
         rgb.green_off()
         time.sleep(config.POST_MESSAGE_SLEEP)
