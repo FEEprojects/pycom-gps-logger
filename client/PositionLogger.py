@@ -14,12 +14,14 @@ from base64 import b64decode
 from configobj import ConfigObj
 
 import paho.mqtt.client as mqtt
+from pymongo import MongoClient
 
-DEFAULT_CONFIG = "mqtt-config.ini"
+DEFAULT_CONFIG = "position-config.ini"
 DEFAULT_LOG_LEVEL = logging.INFO
 LOGGER = None
 CONFIG = None
-
+DB = None
+DB_CLIENT = None
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, flags, rc):
     LOGGER.info("Connected with result code "+str(rc))
@@ -38,10 +40,28 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload)
     device = data["dev_id"]
     payload = b64decode(data["payload_raw"])
-    LOGGER.debug(msg.payload)
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + payload
+    serial = data["hardware_serial"]
+    timestamp = datetime.utcnow()
+    pos = payload.lstrip().split(" ")
+    lat = float(pos[0]) / 1000000
+    lon = float(pos[1]) / 1000000
+    if len(pos) == 4:
+        alt = int(pos[2]) 
+        hdop = float(pos[3])/100
+    LOGGER.info(timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial) + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
+    data = {}
+    data["timestamp"] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    data["serial"] = serial
+    data["lon"] = lon
+    data["lat"] = lat
+    data["alt"] = alt
+    data["hdop"] = hdop
+    mongo_insert(data)
 
-
+def mongo_insert(data):
+    collection = DB[CONFIG.db_collection]
+    collection.insert_one(data)
+    LOGGER.debug("Inserted into DB")
 
 def on_subscribe(client, userdata, mid, granted_qos):
     LOGGER.debug("Subscribe" + mid)
@@ -58,7 +78,7 @@ def setup(config_file, log_level=DEFAULT_LOG_LEVEL):
     LOGGER.setLevel(log_level)
     logging.basicConfig(format='%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
     global CONFIG
-    CONFIG = MqttConfig(config_file)
+    CONFIG = PositionLoggerConfig(config_file)
 
     client = mqtt.Client()
     client.on_connect = on_connect
@@ -73,6 +93,17 @@ def setup(config_file, log_level=DEFAULT_LOG_LEVEL):
     LOGGER.info("MQTT Keepalive: " + str(CONFIG.keepalive))
     LOGGER.info("MQTT Username: " + str(CONFIG.user))
     LOGGER.info("MQTT Password: " + str(CONFIG.password))
+
+    global DB
+    global DB_CLIENT
+    DB_CLIENT =  MongoClient(CONFIG.db_server, CONFIG.db_port)
+    LOGGER.info("DB Server: " + CONFIG.db_server)
+    LOGGER.info("DB Port: " + str(CONFIG.db_port))
+    LOGGER.debug("MongoDB Client created")
+    DB = DB_CLIENT[CONFIG.db_database]
+    LOGGER.info("DB Database: " + str(CONFIG.db_database))
+    LOGGER.info("DB Collection: " + str(CONFIG.db_collection))
+
     # Blocking call that processes network traffic, dispatches callbacks and
     # handles reconnecting.
     # Other loop*() functions are available that give a threaded interface and a
@@ -82,7 +113,7 @@ def setup(config_file, log_level=DEFAULT_LOG_LEVEL):
     except KeyboardInterrupt:
         client.loop_stop()
 
-class MqttConfig(object):
+class PositionLoggerConfig(object):
     def __init__(self, config_file):
         try:
             config = ConfigObj(config_file)
@@ -93,6 +124,10 @@ class MqttConfig(object):
             self.keepalive = int(config["keepalive"])
             self.topic = config["topic"]
             self.qos = int(config["qos"])
+            self.db_server = config["db_server"]
+            self.db_port = int(config["db_port"])
+            self.db_database = config["db_database"]
+            self.db_collection = config["db_collection"]
         except KeyError:
             raise ConfigError("Invalid configuration given, missing a required option")
         except ValueError:
@@ -132,8 +167,9 @@ if __name__ == "__main__":
         CONFIG_FILE = DEFAULT_CONFIG
     else:
         CONFIG_FILE = OPTIONS.config_file
-    try:
-        setup(CONFIG_FILE, LOG_LEVEL)
-    except Exception as EX:
-        print str(EX)
-        exit(1)
+    setup(CONFIG_FILE, LOG_LEVEL)
+#    try:
+#        setup(CONFIG_FILE, LOG_LEVEL)
+#    except Exception as EX:
+#        print str(EX)
+#        exit(1)
