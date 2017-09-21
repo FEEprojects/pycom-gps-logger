@@ -8,11 +8,13 @@ Modified 09/2017
 """
 import json
 import logging
-import paho.mqtt.client as mqtt
-from configobj import ConfigObj
 from optparse import OptionParser, OptionGroup
 from datetime import datetime
 from base64 import b64decode
+from configobj import ConfigObj
+
+import paho.mqtt.client as mqtt
+
 DEFAULT_CONFIG = "mqtt-config.ini"
 DEFAULT_LOG_LEVEL = logging.INFO
 LOGGER = None
@@ -131,6 +133,6 @@ if __name__ == "__main__":
         CONFIG_FILE = OPTIONS.config_file
     try:
         setup(CONFIG_FILE, LOG_LEVEL)
-    except Exception as e:
-        print str(e)
+    except Exception as EX:
+        print str(EX)
         exit(1)
