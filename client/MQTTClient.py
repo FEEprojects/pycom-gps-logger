@@ -38,6 +38,7 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload)
     device = data["dev_id"]
     payload = b64decode(data["payload_raw"])
+    LOGGER.debug(msg.payload)
     print datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + payload
 
 
