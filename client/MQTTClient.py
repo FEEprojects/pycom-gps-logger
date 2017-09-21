@@ -10,7 +10,9 @@ Modified 09/2017
 import logging
 import paho.mqtt.client as mqtt
 from configobj import ConfigObj
+from optparse import OptionParser, OptionGroup
 
+DEFAULT_CONFIG = "mqtt-config.ini"
 DEFAULT_LOG_LEVEL = logging.WARN
 LOGGER = None
 CONFIG = None
@@ -91,3 +93,37 @@ class ConfigError(Exception):
         Exception for use if the config file does not contain the required items
     """
     pass
+
+if __name__ == "__main__":
+    PARSER = OptionParser()
+    LOG_LEVEL = DEFAULT_LOG_LEVEL
+    LOG_GROUP = OptionGroup(
+        PARSER, "Verbosity Options",
+        "Options to change the level of output")
+    LOG_GROUP.add_option(
+        "-q", "--quiet", action="store_true",
+        dest="quiet", default=False,
+        help="Supress all but critical errors")
+    LOG_GROUP.add_option(
+        "-v", "--verbose", action="store_true",
+        dest="verbose", default=False,
+        help="Print all information available")
+    PARSER.add_option_group(LOG_GROUP)
+    PARSER.add_option(
+        "-c", "--config", action="store",
+        type="string", dest="config_file",
+        help="Configuration file description options needed")
+    (OPTIONS, ARGS) = PARSER.parse_args()
+    if OPTIONS.quiet:
+        LOG_LEVEL = logging.CRITICAL
+    elif OPTIONS.verbose:
+        LOG_LEVEL = logging.DEBUG
+    if OPTIONS.config_file is None:
+        CONFIG_FILE = DEFAULT_CONFIG
+    else:
+        CONFIG_FILE = OPTIONS.config_file
+    try:
+        setup(CONFIG_FILE, LOG_LEVEL)
+    except Exception as e:
+        print str(e)
+        exit(1)
