@@ -6,12 +6,13 @@ Created on Thu Aug 11 11:15:56 2016
 Modified 09/2017
 @author pjb
 """
-
+import json
 import logging
 import paho.mqtt.client as mqtt
 from configobj import ConfigObj
 from optparse import OptionParser, OptionGroup
-
+from datetime import datetime
+from base64 import b64decode
 DEFAULT_CONFIG = "mqtt-config.ini"
 DEFAULT_LOG_LEVEL = logging.INFO
 LOGGER = None
@@ -32,7 +33,10 @@ def on_connect(client, userdata, flags, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
-    print msg.topic + " " + str(msg.payload)
+    data = json.loads(msg.payload)
+    device = data["dev_id"]
+    payload = b64decode(data["payload_raw"])
+    print datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + payload
 
 
 
@@ -70,7 +74,10 @@ def setup(config_file, log_level=DEFAULT_LOG_LEVEL):
     # handles reconnecting.
     # Other loop*() functions are available that give a threaded interface and a
     # manual interface.
-    client.loop_forever()
+    try:
+        client.loop_forever()
+    except KeyboardInterrupt:
+        client.loop_stop()
 
 class MqttConfig(object):
     def __init__(self, config_file):
