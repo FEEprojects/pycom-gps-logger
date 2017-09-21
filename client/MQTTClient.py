@@ -13,7 +13,7 @@ from configobj import ConfigObj
 from optparse import OptionParser, OptionGroup
 
 DEFAULT_CONFIG = "mqtt-config.ini"
-DEFAULT_LOG_LEVEL = logging.WARN
+DEFAULT_LOG_LEVEL = logging.INFO
 LOGGER = None
 CONFIG = None
 
