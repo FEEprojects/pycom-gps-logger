@@ -1,0 +1,12 @@
+topic = 
+user = 
+pass = 
+server = 
+port = 
+keepalive = 
+qos = 
+
+db_server = 
+db_port = 
+db_database = 
+db_collection = 
