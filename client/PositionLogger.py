@@ -39,7 +39,6 @@ def on_connect(client, userdata, flags, rc):
 def unpack_payload(payload):
     lat, lon, alt, hdop = None, None, None, None
     payloadh = binascii.hexlify(payload)    
-    print payloadh
     latb = int(payloadh[0:6],16)
     lonb = int(payloadh[6:12],16)
     alt = int(payloadh[12:14],16)   #No further processing needed so direct to int
