@@ -1,6 +1,6 @@
 from pytrack import Pytrack
 from L76GNSS import L76GNSS
-from network import LoRa
+from network import LoRa, WLAN
 import time
 import socket
 
@@ -10,6 +10,9 @@ import binascii
 from led import RgbWrapper
 
 rgb = RgbWrapper()  #Setup LED for debug output
+
+wlan = WLAN()
+wlan.deinit()   #Disable the WiFi access point
 
 #Enable GPS here red on
 rgb.red_on()
