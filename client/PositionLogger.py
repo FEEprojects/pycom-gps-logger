@@ -35,6 +35,18 @@ def on_connect(client, userdata, flags, rc):
     LOGGER.info("QOS: " + str(CONFIG.qos))
 
 
+def unpack_payload(payload):
+    lat, lon, alt, hdop = None, None, None, None
+    pos = payload.lstrip().split(" ")
+    lat = float(pos[0]) / 1000000
+    lon = float(pos[1]) / 1000000
+    if len(pos) == 4:
+        alt = float(pos[2]) 
+        hdop = float(pos[3])/100
+    else:
+        LOGGER.debug("No alt or hdop info")
+    return (lat, lon, alt, hdop)
+
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     data = json.loads(msg.payload)
@@ -42,12 +54,7 @@ def on_message(client, userdata, msg):
     payload = b64decode(data["payload_raw"])
     serial = data["hardware_serial"]
     timestamp = datetime.utcnow()
-    pos = payload.lstrip().split(" ")
-    lat = float(pos[0]) / 1000000
-    lon = float(pos[1]) / 1000000
-    if len(pos) == 4:
-        alt = float(pos[2]) 
-        hdop = float(pos[3])/100
+    (lat, lon, alt, hdop) = unpack_payload(payload)
     LOGGER.info(timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial) + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
     sf = data["metadata"]["data_rate"]
     gws = []    #object for passing to mongodb
