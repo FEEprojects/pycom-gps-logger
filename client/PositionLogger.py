@@ -49,13 +49,25 @@ def on_message(client, userdata, msg):
         alt = float(pos[2]) 
         hdop = float(pos[3])/100
     LOGGER.info(timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial) + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
+    sf = data["metadata"]["data_rate"]
+    gws = []    #object for passing to mongodb
+    gateways =  data["metadata"]["gateways"]
+    for gate in gateways:
+        gwd = {}    #dictionary for data from this gateway
+        gwd["gw_id"] = gate["gtw_id"]
+        gwd["snr"] =  gate["snr"]
+        gwd["rssi"] = gate["rssi"]
+        gws.append(gwd)
+
     data = {}
     data["timestamp"] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    data["sf"] = sf
     data["serial"] = serial
     data["lon"] = lon
     data["lat"] = lat
     data["alt"] = alt
     data["hdop"] = hdop
+    data["gateways"] = gws
     mongo_insert(data)
 
 def mongo_insert(data):
