@@ -12,6 +12,7 @@ from optparse import OptionParser, OptionGroup
 from datetime import datetime
 from base64 import b64decode
 from configobj import ConfigObj
+import binascii
 
 import paho.mqtt.client as mqtt
 from pymongo import MongoClient
@@ -37,14 +38,15 @@ def on_connect(client, userdata, flags, rc):
 
 def unpack_payload(payload):
     lat, lon, alt, hdop = None, None, None, None
-    pos = payload.lstrip().split(" ")
-    lat = float(pos[0]) / 1000000
-    lon = float(pos[1]) / 1000000
-    if len(pos) == 4:
-        alt = float(pos[2]) 
-        hdop = float(pos[3])/100
-    else:
-        LOGGER.debug("No alt or hdop info")
+    payloadh = binascii.hexlify(payload)    
+    print payloadh
+    latb = int(payloadh[0:6],16)
+    lonb = int(payloadh[6:12],16)
+    alt = int(payloadh[12:14],16)   #No further processing needed so direct to int
+    hdopb = int(payloadh[14:16],16)
+    lat = round(((float(latb) / 0xFFFFFF) * 180) - 90,5)
+    lon = round(((float(lonb) / 0xFFFFFF) * 360) - 180,5) 
+    hdop = float(hdopb)/10
     return (lat, lon, alt, hdop)
 
 # The callback for when a PUBLISH message is received from the server.
@@ -52,6 +54,7 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload)
     device = data["dev_id"]
     payload = b64decode(data["payload_raw"])
+#    payload = data["payload_raw"]
     serial = data["hardware_serial"]
     timestamp = datetime.utcnow()
     (lat, lon, alt, hdop) = unpack_payload(payload)
