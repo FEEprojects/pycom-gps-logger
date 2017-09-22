@@ -57,7 +57,7 @@ sock.setblocking(False)
 fix = False
 
 while True:
-    (lat, lon, alt, hdop) = gps.coordinates_adv() 
+    (lat, lon, alt, hdop) = gps.position() 
  #   lat = 123.456
  #   lon = 7.89
  #   alt = 86
