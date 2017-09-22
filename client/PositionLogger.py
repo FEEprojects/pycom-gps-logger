@@ -46,7 +46,7 @@ def on_message(client, userdata, msg):
     lat = float(pos[0]) / 1000000
     lon = float(pos[1]) / 1000000
     if len(pos) == 4:
-        alt = int(pos[2]) 
+        alt = float(pos[2]) 
         hdop = float(pos[3])/100
     LOGGER.info(timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial) + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
     data = {}
