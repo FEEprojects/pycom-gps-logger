@@ -9,12 +9,11 @@ import binascii
 
 from led import RgbWrapper
 
-
 def convert_payload(lat, lon, alt, hdop):
     payload= []
     latb = int(((lat + 90) / 180) * 0xFFFFFF)
     lonb = int(((lon + 180) / 360) * 0xFFFFFF)
-    altb = int(float(alt) * 10)
+    altb = int(round(float(alt),0))
     hdopb = int(float(hdop) * 10)
 
     payload.append(((latb >> 16) & 0xFF))
@@ -23,7 +22,6 @@ def convert_payload(lat, lon, alt, hdop):
     payload.append(((lonb >> 16) & 0xFF))
     payload.append(((lonb >> 8) & 0xFF))
     payload.append((lonb & 0xFF))
-    payload.append((altb >> 8) & 0xFF)
     payload.append((altb & 0xFF))
     payload.append(hdopb & 0xFF)
     return payload
@@ -68,7 +66,7 @@ while True:
             fix = True
         rgb.red_off()
         rgb.green_on()  
-        #print("%s %s %s %s" %(lat, lon, alt, hdop))
+        print("%s %s %s %s" %(lat, lon, alt, hdop))
         payload = convert_payload(lat, lon, alt, hdop)
         sock.send(bytes(payload))
         #print(binascii.hexlify(bytes(payload)))
