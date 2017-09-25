@@ -26,17 +26,6 @@ class L76GNSS:
         self.reg = self.i2c.readfrom(GPS_I2CADDR, 64)
         return self.reg
 
-    def _convert_coords(self, gngll_s):
-        lat = gngll_s[1]
-        lat_d = (float(lat) // 100) + ((float(lat) % 100) / 60)
-        lon = gngll_s[3]
-        lon_d = (float(lon) // 100) + ((float(lon) % 100) / 60)
-        if gngll_s[2] == 'S':
-            lat_d *= -1
-        if gngll_s[4] == 'W':
-            lon_d *= -1
-        return(lat_d, lon_d)
-
     def _convert_coords(self, lat, lat_dir, lon, lon_dir):
         lat_d = None
         lon_d = None
@@ -77,7 +66,8 @@ class L76GNSS:
                     try:
                         gngll = gngll[:e_idx].decode('ascii')
                         gngll_s = gngll.split(',')
-                        lat_d, lon_d = self._convert_coords(gngll_s[1], gngll_s[2], gngll_s[3], gngll_s[4])
+                        lat_d, lon_d = self._convert_coords(
+                            gngll_s[1], gngll_s[2], gngll_s[3], gngll_s[4])
                     except Exception:
                         pass
                     finally:
@@ -113,7 +103,6 @@ class L76GNSS:
                 gc.collect()
                 break
             nmea += self._read().lstrip(b'\n\n').rstrip(b'\n\n')
-            # print(nmea)
             gpgga_idx = nmea.find(b'GPGGA')
             if gpgga_idx >= 0:
                 gpgga = nmea[gpgga_idx:]
@@ -122,16 +111,19 @@ class L76GNSS:
                     try:
                         gpgga = gpgga[:e_idx].decode('ascii')
                         gpgga_s = gpgga.split(',')
-                        lat_d, lon_d = self._convert_coords(gpgga_s[2], gpgga_s[3], gpgga_s[4], gpgga_s[5])
+                        lat_d, lon_d = self._convert_coords(
+                            gpgga_s[2], gpgga_s[3], gpgga_s[4], gpgga_s[5])
                         alt = gpgga_s[9]
                         hdop = gpgga_s[8]
-                    except Exception as e:
-                        print(e)
-                        #pass
+                    except Exception:
+                        pass
                     finally:
                         nmea = nmea[(gpgga_idx + e_idx):]
                         gc.collect()
-                    if lat_d is not None and lon_d is not None and alt is not None and hdop is not None:
+                    if (lat_d is not None
+                            and lon_d is not None
+                            and alt is not None
+                            and hdop is not None):
                         break
             else:
                 gc.collect()
