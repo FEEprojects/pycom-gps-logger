@@ -12,7 +12,7 @@ from optparse import OptionParser, OptionGroup
 from datetime import datetime
 from base64 import b64decode
 from configobj import ConfigObj
-
+import binascii
 import paho.mqtt.client as mqtt
 
 DEFAULT_CONFIG = "mqtt-config.ini"
@@ -38,9 +38,18 @@ def on_message(client, userdata, msg):
     data = json.loads(msg.payload)
     device = data["dev_id"]
     payload = b64decode(data["payload_raw"])
+    rate = data["metadata"]["data_rate"]
     LOGGER.debug(msg.payload)
-    print datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + payload
-
+    try:
+        print datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + rate + " " + payload
+    except UnicodeDecodeError:
+        print datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + rate + " " + binascii.hexlify(payload)
+    gateways =  data["metadata"]["gateways"]
+    for gate in gateways:
+        gw_id = gate["gtw_id"]
+        snr = gate["snr"]
+        rssi = gate["rssi"]
+        print "\t" + str(gw_id) + "\t" + str(snr) + "\t" + str(rssi)
 
 
 def on_subscribe(client, userdata, mid, granted_qos):

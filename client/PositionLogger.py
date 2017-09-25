@@ -12,6 +12,7 @@ from optparse import OptionParser, OptionGroup
 from datetime import datetime
 from base64 import b64decode
 from configobj import ConfigObj
+import binascii
 
 import paho.mqtt.client as mqtt
 from pymongo import MongoClient
@@ -35,27 +36,47 @@ def on_connect(client, userdata, flags, rc):
     LOGGER.info("QOS: " + str(CONFIG.qos))
 
 
+def unpack_payload(payload):
+    lat, lon, alt, hdop = None, None, None, None
+    payloadh = binascii.hexlify(payload)    
+    latb = int(payloadh[0:6],16)
+    lonb = int(payloadh[6:12],16)
+    alt = int(payloadh[12:14],16)   #No further processing needed so direct to int
+    hdopb = int(payloadh[14:16],16)
+    lat = round(((float(latb) / 0xFFFFFF) * 180) - 90,5)
+    lon = round(((float(lonb) / 0xFFFFFF) * 360) - 180,5) 
+    hdop = float(hdopb)/10
+    return (lat, lon, alt, hdop)
+
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
     data = json.loads(msg.payload)
     device = data["dev_id"]
     payload = b64decode(data["payload_raw"])
+#    payload = data["payload_raw"]
     serial = data["hardware_serial"]
     timestamp = datetime.utcnow()
-    pos = payload.lstrip().split(" ")
-    lat = float(pos[0]) / 1000000
-    lon = float(pos[1]) / 1000000
-    if len(pos) == 4:
-        alt = float(pos[2]) 
-        hdop = float(pos[3])/100
+    (lat, lon, alt, hdop) = unpack_payload(payload)
     LOGGER.info(timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial) + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
+    sf = data["metadata"]["data_rate"]
+    gws = []    #object for passing to mongodb
+    gateways =  data["metadata"]["gateways"]
+    for gate in gateways:
+        gwd = {}    #dictionary for data from this gateway
+        gwd["gw_id"] = gate["gtw_id"]
+        gwd["snr"] =  gate["snr"]
+        gwd["rssi"] = gate["rssi"]
+        gws.append(gwd)
+
     data = {}
     data["timestamp"] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    data["sf"] = sf
     data["serial"] = serial
     data["lon"] = lon
     data["lat"] = lat
     data["alt"] = alt
     data["hdop"] = hdop
+    data["gateways"] = gws
     mongo_insert(data)
 
 def mongo_insert(data):
