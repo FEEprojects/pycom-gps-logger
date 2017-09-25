@@ -1,13 +1,20 @@
 from pytrack import Pytrack
 from L76GNSS import L76GNSS
 from network import LoRa, WLAN
+from machine import SD
+from machine import Timer
+import os
 import time
 import socket
+import json
 
 import config
 import binascii
 
 from led import RgbWrapper
+
+SD_MOUNT_DIR = "/sd"
+GPS_FILENAME = "gps"
 
 def convert_payload(lat, lon, alt, hdop):
     payload= []
@@ -26,7 +33,34 @@ def convert_payload(lat, lon, alt, hdop):
     payload.append(hdopb & 0xFF)
     return payload
 
+
+def write_coords(filename, time, lat, lon, alt, hdop):
+    f = open(filename, "a");
+    d = {}
+    d["time"] = time
+    d["lat"] = lat
+    d["lon"] = lon
+    d["hdop"] = hdop
+    d["alt"] = alt
+    f.write(json.dumps(d))
+    f.close()
+
 rgb = RgbWrapper()  #Setup LED for debug output
+sd_en = False       #Whether to try to write to SD card
+chrono = Timer.Chrono() #Keep track of time since boot so can keep record of how long between GPS readings
+chrono.start()      
+
+try:
+    sd = SD()
+    os.mount(sd, SD_MOUNT_DIR)
+    sd_en = True
+    rgb.green(0x88)
+    rgb.red(0x88)
+    time.sleep(1)
+    rgb.green_off()
+    rgb.red_off()
+except OSError:
+    sd_en = False   #Make sure SD card access is disabled
 
 wlan = WLAN()
 wlan.deinit()   #Disable the WiFi access point
@@ -56,17 +90,31 @@ fix = False
 print("Socket created")
 
 while True:
-    (lat, lon, alt, hdop) = gps.position() 
-    if not lat is None and not lon is None and not alt is None and not hdop is None: #We have a GPS fix
+    (lat, lon, alt, hdop) = gps.position()
+    if not lat is None and not lon is None and not alt is None and not hdop is None: #Have a GPS fix
         if not fix:
             print("GPS lock acquired")
             fix = True
         rgb.red_off()
-        rgb.green_on()  
+        rgb.green_on()
         print("%s %s %s %s" %(lat, lon, alt, hdop))
         payload = convert_payload(lat, lon, alt, hdop)
         sock.send(bytes(payload))
         #print(binascii.hexlify(bytes(payload)))
+        try:
+            write_coords(
+                SD_MOUNT_DIR + GPS_FILENAME,
+                chrono.read(),
+                lat, lon, alt, hdop
+                )
+        except Exception:
+            rgb.red_on()
+            time.sleep(0.2)
+            rgb.red_off()
+            time.sleep(0.2)
+            rgb.red_on()
+            time.sleep(0.2)
+            rgb.red_off()
         time.sleep(0.5)
         rgb.green_off()
         time.sleep(config.POST_MESSAGE_SLEEP)
