@@ -53,6 +53,7 @@ sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 sock.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 sock.setblocking(False)   
 fix = False
+print("Socket created")
 
 while True:
     (lat, lon, alt, hdop) = gps.position() 
