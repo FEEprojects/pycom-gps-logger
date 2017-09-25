@@ -56,10 +56,6 @@ fix = False
 
 while True:
     (lat, lon, alt, hdop) = gps.position() 
- #   lat = 123.456
- #   lon = 7.89
- #   alt = 86
- #   hdop = 4.33
     if not lat is None and not lon is None and not alt is None and not hdop is None: #We have a GPS fix
         if not fix:
             print("GPS lock acquired")
@@ -76,7 +72,7 @@ while True:
         
     else:   #No GPS fix
         if fix:
-            print("Lost/No GPS")
+            print("Lost GPS")
             fix = False
         rgb.red_on()
         time.sleep(1)
