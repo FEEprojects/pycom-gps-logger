@@ -14,7 +14,7 @@ import binascii
 from led import RgbWrapper
 
 SD_MOUNT_DIR = "/sd"
-GPS_FILENAME = "gps"
+GPS_FILENAME = "/gps"
 
 def convert_payload(lat, lon, alt, hdop):
     payload= []
@@ -35,6 +35,7 @@ def convert_payload(lat, lon, alt, hdop):
 
 
 def write_coords(filename, time, lat, lon, alt, hdop):
+    print(filename)
     f = open(filename, "a");
     d = {}
     d["time"] = time
