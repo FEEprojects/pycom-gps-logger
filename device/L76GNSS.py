@@ -1,7 +1,6 @@
-from machine import Timer
 import time
 import gc
-import binascii
+from machine import Timer
 
 class L76GNSS:
 

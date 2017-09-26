@@ -1,15 +1,16 @@
+import os
+import time
+import socket
+import json
+import binascii
+import config
+
 from pytrack import Pytrack
 from L76GNSS import L76GNSS
 from network import LoRa, WLAN
 from machine import SD
 from machine import Timer
-import os
-import time
-import socket
-import json
 
-import config
-import binascii
 
 from led import RgbWrapper
 
@@ -17,10 +18,10 @@ SD_MOUNT_DIR = "/sd"
 GPS_FILENAME = "/gps"
 
 def convert_payload(lat, lon, alt, hdop):
-    payload= []
+    payload = []
     latb = int(((lat + 90) / 180) * 0xFFFFFF)
     lonb = int(((lon + 180) / 360) * 0xFFFFFF)
-    altb = int(round(float(alt),0))
+    altb = int(round(float(alt), 0))
     hdopb = int(float(hdop) * 10)
 
     payload.append(((latb >> 16) & 0xFF))
@@ -36,7 +37,7 @@ def convert_payload(lat, lon, alt, hdop):
 
 def write_coords(filename, time, lat, lon, alt, hdop):
     print(filename)
-    f = open(filename, "a");
+    f = open(filename, "a")
     d = {}
     d["time"] = time
     d["lat"] = lat
@@ -44,12 +45,14 @@ def write_coords(filename, time, lat, lon, alt, hdop):
     d["hdop"] = hdop
     d["alt"] = alt
     f.write(json.dumps(d))
+    f.write("\n")
     f.close()
 
 rgb = RgbWrapper()  #Setup LED for debug output
 sd_en = False       #Whether to try to write to SD card
-chrono = Timer.Chrono() #Keep track of time since boot so can keep record of how long between GPS readings
-chrono.start()      
+chrono = Timer.Chrono() #Keep track of time since boot so can  record how long between GPS readings
+chrono.start()
+last_gps_reading = 0    #When the last GPS reading was taken
 
 try:
     sd = SD()
@@ -62,6 +65,7 @@ try:
     rgb.red_off()
 except OSError:
     sd_en = False   #Make sure SD card access is disabled
+print("SD Card enabled: " + str(sd_en))
 
 wlan = WLAN()
 wlan.deinit()   #Disable the WiFi access point
@@ -70,6 +74,7 @@ wlan.deinit()   #Disable the WiFi access point
 rgb.red_on()
 py = Pytrack()
 gps = L76GNSS(py, timeout=config.GPS_TIMEOUT)
+fix = False     #Initially we don't have a fix
 
 #Join Lora blue on
 lora = LoRa(mode=LoRa.LORAWAN)
@@ -77,17 +82,36 @@ app_eui = binascii.unhexlify(config.APP_EUI)
 app_key = binascii.unhexlify(config.APP_KEY)
 lora.join(activation=LoRa.OTAA, auth=(app_eui, app_key), timeout=config.JOIN_TIMEOUT)
 rgb.blue(0xFF)
+
 while not lora.has_joined():
     time.sleep(1.25)
     rgb.blue(0x88)
     time.sleep(1.25)
     rgb.blue(0xFF)
+    if sd_en:   #No point in trying to get a GPS fix if no SD card as nowhere to store it
+        if (chrono.read() - last_gps_reading) > config.GPS_READ_INTERVAL:
+            print("Performing a GPS read to log to SD")
+        (lat, lon, alt, hdop) = gps.position()
+        last_gps_reading = chrono.read() #record time of the last attempt to read GPS
+        if(not lat is None
+           and not lon is None
+           and not alt is None
+           and not hdop is None): #Have a GPS fix
+            if not fix:
+                print("GPS lock acquired")
+                fix = True
+                rgb.red_off()
+        else:   #No GPS fix
+            if fix:
+                print("Lost GPS")
+                fix = False
+                rgb.red_on()
 print("Joined LoRaWAN network")
 rgb.blue(0x88)
 sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 sock.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
-sock.setblocking(False)   
-fix = False
+sock.setblocking(False)
+
 print("Socket created")
 
 while True:
@@ -103,11 +127,12 @@ while True:
         sock.send(bytes(payload))
         #print(binascii.hexlify(bytes(payload)))
         try:
-            write_coords(
-                SD_MOUNT_DIR + GPS_FILENAME,
-                chrono.read(),
-                lat, lon, alt, hdop
-                )
+            if sd_en:  #Only try writing to SD card if it's enabled
+                write_coords(
+                    SD_MOUNT_DIR + GPS_FILENAME,
+                    chrono.read(),
+                    lat, lon, alt, hdop
+                    )
         except Exception:
             rgb.red_on()
             time.sleep(0.2)
@@ -119,7 +144,6 @@ while True:
         time.sleep(0.5)
         rgb.green_off()
         time.sleep(config.POST_MESSAGE_SLEEP)
-        
     else:   #No GPS fix
         if fix:
             print("Lost GPS")
