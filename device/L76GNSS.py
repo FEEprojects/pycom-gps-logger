@@ -1,3 +1,10 @@
+"""
+Originally from https://github.com/pycom/pycom-libraries
+Adapted by Philip Basford
+Original coordinates method not fully tested since changes.  
+position method is known to work
+
+"""
 import time
 import gc
 from machine import Timer

@@ -1,3 +1,13 @@
+"""
+Uses the pytrack module with the pycom to record the position
+and then transmit it over LoRaWAN to enable range testing.
+
+Also records GPS locations to µSD card for further debug.
+In theory this recording starts before LoRa signal is gathered
+but this part is currently untested.
+@author Philip Basford
+"""
+
 import os
 import time
 import socket
@@ -17,7 +27,11 @@ from led import RgbWrapper
 SD_MOUNT_DIR = "/sd"
 GPS_FILENAME = "/gps"
 
+
 def convert_payload(lat, lon, alt, hdop):
+    """
+        Converts to the format used by ttnmapper.org
+    """
     payload = []
     latb = int(((lat + 90) / 180) * 0xFFFFFF)
     lonb = int(((lon + 180) / 360) * 0xFFFFFF)
@@ -37,6 +51,11 @@ def convert_payload(lat, lon, alt, hdop):
 
 
 def write_coords(filename, time, lat, lon, alt, hdop):
+    """
+        Writes out the co-ordinates and time since boot out to file.  
+        Each line is a JSON object, they are not in an array as that would mean the file
+        can't just be appended to
+    """
     print(filename)
     f = open(filename, "a")
     d = {}

@@ -1,3 +1,6 @@
+"""
+From https://github.com/pycom/pycom-libraries
+"""
 import math
 import struct
 
