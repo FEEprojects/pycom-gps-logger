@@ -67,6 +67,11 @@ def write_coords(filename, time, lat, lon, alt, hdop):
     f.write(json.dumps(d))
     f.write("\n")
     f.close()
+    rgb.green(0x88)
+    rgb.red(0x88)
+    time.sleep(1)
+    rgb.green_off()
+    rgb.red_off()
 
 rgb = RgbWrapper()  #Setup LED for debug output
 sd_en = False       #Whether to try to write to SD card
@@ -101,13 +106,12 @@ lora = LoRa(mode=LoRa.LORAWAN)
 app_eui = binascii.unhexlify(config.APP_EUI)
 app_key = binascii.unhexlify(config.APP_KEY)
 lora.join(activation=LoRa.OTAA, auth=(app_eui, app_key), timeout=config.JOIN_TIMEOUT)
-rgb.blue(0xFF)
 
 while not lora.has_joined():
     time.sleep(1.25)
     rgb.blue(0x88)
     time.sleep(1.25)
-    rgb.blue(0xFF)
+    rgb.blue_off()
     if sd_en:   #No point in trying to get a GPS fix if no SD card as nowhere to store it
         if (chrono.read() - last_gps_reading) > config.GPS_READ_INTERVAL:
             print("Performing a GPS read to log to SD")
@@ -161,6 +165,7 @@ while True:
             rgb.red_on()
             time.sleep(0.2)
             rgb.red_off()
+            sd_en = False   #Stop trying to write to SD card
         time.sleep(0.5)
         rgb.green_off()
         time.sleep(config.POST_MESSAGE_SLEEP)
@@ -168,8 +173,4 @@ while True:
         if fix:
             print("Lost GPS")
             fix = False
-        rgb.red_on()
-        time.sleep(1)
-        rgb.red_off()
-        time.sleep(1)
-        rgb.red_on()
+
