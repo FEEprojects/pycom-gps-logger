@@ -30,6 +30,7 @@ def convert_payload(lat, lon, alt, hdop):
     payload.append(((lonb >> 16) & 0xFF))
     payload.append(((lonb >> 8) & 0xFF))
     payload.append((lonb & 0xFF))
+    payload.append(((altb  >> 8) & 0xFF))
     payload.append((altb & 0xFF))
     payload.append(hdopb & 0xFF)
     return payload
