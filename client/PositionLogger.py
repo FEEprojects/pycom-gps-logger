@@ -69,7 +69,7 @@ def on_message(client, userdata, msg):
         gws.append(gwd)
 
     data = {}
-    data["timestamp"] = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+    data["timestamp"] = timestamp
     data["sf"] = sf
     data["serial"] = serial
     data["lon"] = lon
