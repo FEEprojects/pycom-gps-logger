@@ -1,20 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Created on Thu Aug 11 11:15:56 2016
-@author: sjj
-Modified 09/2017
+Created 10/2017
 @author pjb
 """
 import json
 import logging
 from optparse import OptionParser, OptionGroup
-from datetime import datetime
-from base64 import b64decode
-import binascii
 
 from pymongo import MongoClient
-from position_config import *
+from position_config import PositionLoggerConfig
 
 DEFAULT_TARGET = "positions.json"
 DEFAULT_CONFIG = "position-config.ini"
@@ -33,6 +28,9 @@ class PositionLogDump(object):
         self.db_port = config.db_port
         self.db_database = config.db_database
         self.db_collection = config.db_collection
+        self.db_client = None
+        self.db = None
+        self.collection = None
         self.logger.info("DB Server: " + self.db_server)
         self.logger.info("DB Port: " + str(self.db_port))
         self.logger.info("DB Database: " + str(self.db_database))
@@ -71,7 +69,7 @@ class PositionLogDump(object):
         f = open(filename, "w")
         f.write(json.dumps(new_data))
         f.close()
-        self.logger.info("Dumped %d records" % len(new_data))
+        self.logger.info("Dumped %d records", len(new_data))
 
 if __name__ == "__main__":
     PARSER = OptionParser()
@@ -111,5 +109,5 @@ if __name__ == "__main__":
     else:
         TARGET_FILE = OPTIONS.target_file
     DUMPER = PositionLogDump(LOG_LEVEL, CONFIG_FILE)
-    DUMPER.dump(TARGET_FILE) 
-     
+    DUMPER.dump(TARGET_FILE)
+
