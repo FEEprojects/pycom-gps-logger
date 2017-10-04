@@ -16,6 +16,7 @@ from base64 import b64decode
 import paho.mqtt.client as mqtt
 from pymongo import MongoClient
 from position_config import PositionLoggerConfig
+from ttn_map_unpack import unpack_payload
 
 DEFAULT_CONFIG = "position-config.ini"
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -35,18 +36,6 @@ def on_connect(client, userdata, flags, rc):
     LOGGER.info("TOPIC: " + str(CONFIG.topic))
     LOGGER.info("QOS: " + str(CONFIG.qos))
 
-
-def unpack_payload(payload):
-    lat, lon, alt, hdop = None, None, None, None
-    payloadh = binascii.hexlify(payload)
-    latb = int(payloadh[0:6], 16)
-    lonb = int(payloadh[6:12], 16)
-    alt = int(payloadh[12:16], 16)   #No further processing needed so direct to int
-    hdopb = int(payloadh[16:18], 16)
-    lat = round(((float(latb) / 0xFFFFFF) * 180) - 90, 5)
-    lon = round(((float(lonb) / 0xFFFFFF) * 360) - 180, 5)
-    hdop = float(hdopb)/10
-    return (lat, lon, alt, hdop)
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
