@@ -88,7 +88,7 @@ def on_log(client, userdata, level, buf):
 
 def setup(config_file, log_level=DEFAULT_LOG_LEVEL):
     global LOGGER
-    LOGGER = logging.getLogger("MQTT Client")
+    LOGGER = logging.getLogger("Position Logger")
     LOGGER.setLevel(log_level)
     logging.basicConfig(format='%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
     global CONFIG
