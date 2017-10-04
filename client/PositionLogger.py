@@ -55,8 +55,12 @@ def on_message(client, userdata, msg):
         gwd["gw_id"] = gate["gtw_id"]
         gwd["snr"] = gate["snr"]
         gwd["rssi"] = gate["rssi"]
+        try:
+            gwd["antenna"] = gate["antenna"]
+        except KeyError:
+             gwd["antenna"] = 0     #Assume if not given it's antenna 0
         gws.append(gwd)
-
+        
     data = {}
     data["timestamp"] = timestamp
     data["sf"] = sf
