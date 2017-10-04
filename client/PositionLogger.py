@@ -8,15 +8,14 @@ Modified 09/2017
 """
 import json
 import logging
+import binascii
 from optparse import OptionParser, OptionGroup
 from datetime import datetime
 from base64 import b64decode
-from configobj import ConfigObj
-import binascii
 
 import paho.mqtt.client as mqtt
 from pymongo import MongoClient
-from position_config import *
+from position_config import PositionLoggerConfig
 
 DEFAULT_CONFIG = "position-config.ini"
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -39,13 +38,13 @@ def on_connect(client, userdata, flags, rc):
 
 def unpack_payload(payload):
     lat, lon, alt, hdop = None, None, None, None
-    payloadh = binascii.hexlify(payload)    
-    latb = int(payloadh[0:6],16)
-    lonb = int(payloadh[6:12],16)
-    alt = int(payloadh[12:16],16)   #No further processing needed so direct to int
-    hdopb = int(payloadh[16:18],16)
-    lat = round(((float(latb) / 0xFFFFFF) * 180) - 90,5)
-    lon = round(((float(lonb) / 0xFFFFFF) * 360) - 180,5) 
+    payloadh = binascii.hexlify(payload)
+    latb = int(payloadh[0:6], 16)
+    lonb = int(payloadh[6:12], 16)
+    alt = int(payloadh[12:16], 16)   #No further processing needed so direct to int
+    hdopb = int(payloadh[16:18], 16)
+    lat = round(((float(latb) / 0xFFFFFF) * 180) - 90, 5)
+    lon = round(((float(lonb) / 0xFFFFFF) * 360) - 180, 5)
     hdop = float(hdopb)/10
     return (lat, lon, alt, hdop)
 
@@ -61,11 +60,11 @@ def on_message(client, userdata, msg):
     LOGGER.info(timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial) + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
     sf = data["metadata"]["data_rate"]
     gws = []    #object for passing to mongodb
-    gateways =  data["metadata"]["gateways"]
+    gateways = data["metadata"]["gateways"]
     for gate in gateways:
         gwd = {}    #dictionary for data from this gateway
         gwd["gw_id"] = gate["gtw_id"]
-        gwd["snr"] =  gate["snr"]
+        gwd["snr"] = gate["snr"]
         gwd["rssi"] = gate["rssi"]
         gws.append(gwd)
 
@@ -118,7 +117,7 @@ def setup(config_file, log_level=DEFAULT_LOG_LEVEL):
 
     global DB
     global DB_CLIENT
-    DB_CLIENT =  MongoClient(CONFIG.db_server, CONFIG.db_port)
+    DB_CLIENT = MongoClient(CONFIG.db_server, CONFIG.db_port)
     LOGGER.info("DB Server: " + CONFIG.db_server)
     LOGGER.info("DB Port: " + str(CONFIG.db_port))
     LOGGER.debug("MongoDB Client created")
