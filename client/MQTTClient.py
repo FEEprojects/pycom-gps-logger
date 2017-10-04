@@ -8,12 +8,13 @@ Modified 09/2017
 """
 import json
 import logging
+import binascii
 from optparse import OptionParser, OptionGroup
 from datetime import datetime
 from base64 import b64decode
-from configobj import ConfigObj
-import binascii
 import paho.mqtt.client as mqtt
+
+from mqtt_config import MqttConfig
 
 DEFAULT_CONFIG = "mqtt-config.ini"
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -44,7 +45,7 @@ def on_message(client, userdata, msg):
         print datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + rate + " " + payload
     except UnicodeDecodeError:
         print datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + rate + " " + binascii.hexlify(payload)
-    gateways =  data["metadata"]["gateways"]
+    gateways = data["metadata"]["gateways"]
     for gate in gateways:
         gw_id = gate["gtw_id"]
         snr = gate["snr"]
@@ -90,28 +91,6 @@ def setup(config_file, log_level=DEFAULT_LOG_LEVEL):
         client.loop_forever()
     except KeyboardInterrupt:
         client.loop_stop()
-
-class MqttConfig(object):
-    def __init__(self, config_file):
-        try:
-            config = ConfigObj(config_file)
-            self.user = config["user"]
-            self.password = config["pass"]
-            self.server = config["server"]
-            self.port = int(config["port"])
-            self.keepalive = int(config["keepalive"])
-            self.topic = config["topic"]
-            self.qos = int(config["qos"])
-        except KeyError:
-            raise ConfigError("Invalid configuration given, missing a required option")
-        except ValueError:
-            raise ConfigError("Number expected but string given")
-
-class ConfigError(Exception):
-    """
-        Exception for use if the config file does not contain the required items
-    """
-    pass
 
 if __name__ == "__main__":
     PARSER = OptionParser()
