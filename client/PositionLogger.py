@@ -61,10 +61,6 @@ def on_message(client, userdata, msg):
         except KeyError:
             gwd["antenna"] = 0     #Assume if not given it's antenna 0
         try:
-            gwd["rf_chain"] = gate["rf_chain"]
-        except KeyError:
-            gwd["rf_chain"] = None
-        try:
             gwd["fine_timestamp"] = gate["fine_timestamp"]
         except KeyError:
             gwd["fine_timestamp"] = None
