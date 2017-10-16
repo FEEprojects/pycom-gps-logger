@@ -8,7 +8,6 @@ Modified 09/2017
 """
 import json
 import logging
-import binascii
 from optparse import OptionParser, OptionGroup
 from datetime import datetime
 from base64 import b64decode
@@ -46,7 +45,9 @@ def on_message(client, userdata, msg):
     serial = data["hardware_serial"]
     timestamp = datetime.utcnow()
     (lat, lon, alt, hdop) = unpack_payload(payload)
-    LOGGER.info(timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial) + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
+    LOGGER.info(
+        timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial)
+        + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
     sf = data["metadata"]["data_rate"]
     gws = []    #object for passing to mongodb
     gateways = data["metadata"]["gateways"]
@@ -58,9 +59,20 @@ def on_message(client, userdata, msg):
         try:
             gwd["antenna"] = gate["antenna"]
         except KeyError:
-             gwd["antenna"] = 0     #Assume if not given it's antenna 0
+            gwd["antenna"] = 0     #Assume if not given it's antenna 0
+        try:
+            gwd["rf_chain"] = gate["rf_chain"]
+        except KeyError:
+            gwd["rf_chain"] = None
+        try:
+            gwd["fine_timestamp"] = gate["fine_timestamp"]
+        except KeyError:
+            gwd["fine_timestamp"] = None
+        try:
+            gwd["fine_timestamp_encrypted"] = gate["fine_timestamp_encrypted"]
+        except KeyError:
+            gwd["fine_timestamp_encrypted"] = None
         gws.append(gwd)
-        
     data = {}
     data["timestamp"] = timestamp
     data["sf"] = sf
