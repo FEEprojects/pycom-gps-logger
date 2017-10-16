@@ -79,11 +79,12 @@ def on_log(client, userdata, level, buf):
 
 def setup(config_file, filename=None, log_level=DEFAULT_LOG_LEVEL):
     global LOGGER
+    global CONFIG
+    global FILENAME
     LOGGER = logging.getLogger("MQTT Client")
     LOGGER.setLevel(log_level)
     logging.basicConfig(format='%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s')
     LOGGER.info("Target file: " + str(filename))
-    global CONFIG
     CONFIG = MqttConfig(config_file)
 
     client = mqtt.Client()
