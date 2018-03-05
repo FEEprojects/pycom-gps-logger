@@ -56,6 +56,9 @@ def on_message(client, userdata, msg):
         gwd["gw_id"] = gate["gtw_id"]
         gwd["snr"] = gate["snr"]
         gwd["rssi"] = gate["rssi"]
+        gwd["timestamp"] = gate["timestamp"]
+        gwd["time"] = gate["time"]
+        gwd["channel"] = gate["channel"]
         try:
             gwd["antenna"] = gate["antenna"]
         except KeyError:
@@ -69,16 +72,24 @@ def on_message(client, userdata, msg):
         except KeyError:
             gwd["fine_timestamp_encrypted"] = None
         gws.append(gwd)
-    data = {}
-    data["timestamp"] = timestamp
-    data["sf"] = sf
-    data["serial"] = serial
-    data["lon"] = lon
-    data["lat"] = lat
-    data["alt"] = alt
-    data["hdop"] = hdop
-    data["gateways"] = gws
-    mongo_insert(data)
+    db_data = {}
+    db_data["timestamp"] = timestamp
+    db_data["sf"] = sf
+    db_data["serial"] = serial
+    db_data["lon"] = lon
+    db_data["lat"] = lat
+    db_data["alt"] = alt
+    db_data["hdop"] = hdop
+    db_data["gateways"] = gws
+    db_data["collos-position"] = {}
+    try:
+        db_data["collos-position"]["lon"] = data["metadata"]["longitude"]
+        db_data["collos-position"]["lat"] = data["metadata"]["latitude"]
+        db_data["collos-position"]["location_source"] = data["metadata"]["location_source"]
+    except KeyError:
+        LOGGER.error("Unable to unpack Collos data")
+
+    mongo_insert(db_data)
 
 def mongo_insert(data):
     collection = DB[CONFIG.db_collection]
