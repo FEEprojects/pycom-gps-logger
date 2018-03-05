@@ -54,6 +54,7 @@ class PositionLogDump(object):
             p["lon"] = pos["lon"]
             p["hdop"] = pos["hdop"]
             p["alt"] = pos["alt"]
+            p["timestamp"] = pos["timestamp"]
             p["gateways"] = []
             for gw in pos["gateways"]:
                 n_gw = {}
@@ -61,13 +62,21 @@ class PositionLogDump(object):
                 n_gw["Rssi"] = gw["rssi"]
                 n_gw["Snr"] = gw["snr"]
                 try:
-                    n_gw["AntennaId"] = gw["ant_id"]
+                    n_gw["AntennaId"] = gw["antenna"]
                 except KeyError:    #antenna ID not stored
                     n_gw["AntennaId"] = 0 #Default to antenna ID 0
+                try:
+                    n_gw["fine_timestamp"] = gw["fine_timestamp"]
+                except:
+                    n_gw["fine_timestamp"] = None
+                try:
+                    n_gw["timestamp"] = gw["timestamp"]
+                except:
+                    n_gw["timestamp"] = None
                 p["gateways"].append(n_gw)
             new_data.append(p)
         f = open(filename, "w")
-        f.write(json.dumps(new_data))
+        f.write(json.dumps(new_data, default=str))
         f.close()
         self.logger.info("Dumped %d records", len(new_data))
 
