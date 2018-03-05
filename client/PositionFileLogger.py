@@ -16,7 +16,7 @@ from configobj import ConfigObj
 import paho.mqtt.client as mqtt
 
 
-from ttn_map_unpack import unpack_payload
+from ttn_map_unpack import unpack_payload, TtnUnpackError
 
 DEFAULT_CONFIG = "position-config.ini"
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -44,18 +44,24 @@ def on_message(client, userdata, msg):
     device = data["dev_id"]
     payload = b64decode(data["payload_raw"])
     rate = data["metadata"]["data_rate"]
-    (lat, lon, alt, hdop) = unpack_payload(payload)
-    LOGGER.debug(datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  + " " + rate + " " + str(lat) + "" + str(lon) + " " + str(hdop) + " " + str(alt))
+    try:
+        (lat, lon, alt, hdop) = unpack_payload(payload)
+        LOGGER.debug(
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S") + " " + device  +
+            " " + rate + " " + str(lat) + "" + str(lon) + " " + str(hdop) +
+            " " + str(alt))
+        data["lat"] = lat
+        data["lon"] = lon
+        data["alt"] = alt
+        data["hdop"] = hdop
+    except TtnUnpackError as e:
+        LOGGER.error(e)
     gateways = data["metadata"]["gateways"]
     for gate in gateways:
         gw_id = gate["gtw_id"]
         snr = gate["snr"]
         rssi = gate["rssi"]
         print "\t" + str(gw_id) + "\t" + str(snr) + "\t" + str(rssi)
-    data["lat"] = lat
-    data["lon"] = lon
-    data["alt"] = alt
-    data["hdop"] = hdop
     try:
         if FILENAME is not None:    #Check we have a file to save to
             f = open(FILENAME, "a")
