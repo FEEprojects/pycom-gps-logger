@@ -14,6 +14,7 @@ import socket
 import json
 import binascii
 import config
+import struct
 
 from pytrack import Pytrack
 from L76GNSS import L76GNSS
@@ -103,9 +104,10 @@ fix = False     #Initially we don't have a fix
 
 #Join Lora blue on
 lora = LoRa(mode=LoRa.LORAWAN)
-app_eui = binascii.unhexlify(config.APP_EUI)
-app_key = binascii.unhexlify(config.APP_KEY)
-lora.join(activation=LoRa.OTAA, auth=(app_eui, app_key), timeout=config.JOIN_TIMEOUT)
+dev_addr = struct.unpack(">l", binascii.unhexlify(config.DEV_ADDR))[0]
+nwk_swkey = binascii.unhexlify(config.NWS_KEY)
+app_swkey = binascii.unhexlify(config.APPS_KEY)
+lora.join(activation=LoRa.ABP, auth=(dev_addr, nwk_swkey, app_swkey))
 
 while not lora.has_joined():
     time.sleep(1.25)
@@ -137,7 +139,6 @@ sock.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 sock.setblocking(False)
 
 print("Socket created")
-
 while True:
     (lat, lon, alt, hdop) = gps.position()
     if not lat is None and not lon is None and not alt is None and not hdop is None: #Have a GPS fix
