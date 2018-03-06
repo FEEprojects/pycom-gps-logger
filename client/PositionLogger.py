@@ -15,7 +15,7 @@ from base64 import b64decode
 import paho.mqtt.client as mqtt
 from pymongo import MongoClient
 from position_config import PositionLoggerConfig
-from ttn_map_unpack import unpack_payload
+from ttn_map_unpack import unpack_payload, TtnUnpackError
 
 DEFAULT_CONFIG = "position-config.ini"
 DEFAULT_LOG_LEVEL = logging.INFO
@@ -38,16 +38,24 @@ def on_connect(client, userdata, flags, rc):
 
 # The callback for when a PUBLISH message is received from the server.
 def on_message(client, userdata, msg):
+    db_data = {}
     data = json.loads(msg.payload)
     device = data["dev_id"]
     payload = b64decode(data["payload_raw"])
 #    payload = data["payload_raw"]
     serial = data["hardware_serial"]
     timestamp = datetime.utcnow()
-    (lat, lon, alt, hdop) = unpack_payload(payload)
-    LOGGER.info(
-        timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial)
-        + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
+    try:
+        (lat, lon, alt, hdop) = unpack_payload(payload)
+        LOGGER.info(
+            timestamp.strftime("%Y-%m-%d %H:%M:%S") +  " " + str(serial)
+            + " " + str(lat) + " " + str(lon) + " " + str(alt) + " " + str(hdop))
+        db_data["lon"] = lon
+        db_data["lat"] = lat
+        db_data["alt"] = alt
+        db_data["hdop"] = hdop
+    except TtnUnpackError as e:
+        LOGGER.error(e)
     sf = data["metadata"]["data_rate"]
     gws = []    #object for passing to mongodb
     gateways = data["metadata"]["gateways"]
@@ -72,14 +80,9 @@ def on_message(client, userdata, msg):
         except KeyError:
             gwd["fine_timestamp_encrypted"] = None
         gws.append(gwd)
-    db_data = {}
     db_data["timestamp"] = timestamp
     db_data["sf"] = sf
     db_data["serial"] = serial
-    db_data["lon"] = lon
-    db_data["lat"] = lat
-    db_data["alt"] = alt
-    db_data["hdop"] = hdop
     db_data["gateways"] = gws
     db_data["collos-position"] = {}
     try:
