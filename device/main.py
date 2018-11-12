@@ -26,7 +26,7 @@ from machine import Timer
 from led import RgbWrapper
 
 SD_MOUNT_DIR = "/sd"
-GPS_FILENAME = "/gps"
+GPS_FILENAME = "/gps.log"
 
 
 def convert_payload(lat, lon, alt, hdop):
@@ -74,6 +74,22 @@ def write_coords(filename, time, lat, lon, alt, hdop):
     rgb.green_off()
     rgb.red_off()
 
+def has_moved(lon, lat, prev_lon, prev_lat, threshold=0.0005):
+    """
+        Compare readings to work out if it has moved enough for it to be worth while
+        0.0005 is finest grained details shown on map equates to ~55m accuracy
+    """
+    abs_lat_difference = abs(prev_lat - lat)
+    if abs_lat_difference > threshold:
+        #we've moved enough in this direction that the lon doesn't matter
+        return True
+    else:
+        abs_lon_difference = abs(prev_lon - lon)
+        return abs_lon_difference > threshold
+
+
+
+
 rgb = RgbWrapper()  #Setup LED for debug output
 sd_en = False       #Whether to try to write to SD card
 chrono = Timer.Chrono() #Keep track of time since boot so can  record how long between GPS readings
@@ -108,10 +124,13 @@ dev_addr = struct.unpack(">l", binascii.unhexlify(config.DEV_ADDR))[0]
 nwk_swkey = binascii.unhexlify(config.NWS_KEY)
 app_swkey = binascii.unhexlify(config.APPS_KEY)
 lora.join(activation=LoRa.ABP, auth=(dev_addr, nwk_swkey, app_swkey))
+prev_lat = 0 
+prev_lon = 0
+# will mean that if it's first turned on off the african coast then it will think it hasn't moved 
+# and therefore won't transmit a packet, considered a low risk issue
 
 while not lora.has_joined():
     time.sleep(1.25)
-    rgb.blue(0x88)
     time.sleep(1.25)
     rgb.blue_off()
     if sd_en:   #No point in trying to get a GPS fix if no SD card as nowhere to store it
@@ -133,7 +152,6 @@ while not lora.has_joined():
                 fix = False
                 rgb.red_on()
 print("Joined LoRaWAN network")
-rgb.blue(0x88)
 sock = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 sock.setsockopt(socket.SOL_LORA, socket.SO_DR, 5)
 sock.setblocking(False)
@@ -146,13 +164,26 @@ while True:
             print("GPS lock acquired")
             fix = True
         rgb.red_off()
-        rgb.green_on()
+        
         print("%s %s %s %s" %(lat, lon, alt, hdop))
-        payload = convert_payload(lat, lon, alt, hdop)
-        sock.send(bytes(payload))
+        if has_moved(lon, lat, prev_lon, prev_lat): #it's moved since last checked
+            print("moved")
+            payload = convert_payload(lat, lon, alt, hdop)
+            sock.send(bytes(payload))
+            prev_lon = lon
+            prev_lat = lat
+            rgb.green_on()
+            time.sleep(0.5)
+            rgb.green_off()
+        else:
+            print("Stationary")
+            rgb.blue_on()
+            time.sleep(0.5)
+            rgb.blue_off()
         #print(binascii.hexlify(bytes(payload)))
         try:
             if sd_en:  #Only try writing to SD card if it's enabled
+                print("SD Write")
                 write_coords(
                     SD_MOUNT_DIR + GPS_FILENAME,
                     chrono.read(),
@@ -167,11 +198,11 @@ while True:
             time.sleep(0.2)
             rgb.red_off()
             sd_en = False   #Stop trying to write to SD card
-        time.sleep(0.5)
-        rgb.green_off()
+
         time.sleep(config.POST_MESSAGE_SLEEP)
     else:   #No GPS fix
         if fix:
             print("Lost GPS")
             fix = False
+            rgb.red_on()
 
