@@ -2,8 +2,9 @@
 Configuration details for the pytrack based GPS logger/tracker
 @author Philip Basford P.J.Basford@soton.ac.uk
 """
-APP_KEY = "" #Application key from the things network
-APP_EUI = ""                 #The EUI for the app
+APPS_KEY =                                  #App Key from TTN
+NWS_KEY =                                   #App EUI from TTN
+DEV_ADDR =                                  #Device EUI from TTN
 JOIN_TIMEOUT = 0                             #passed to the LoRaWAN join function
 GPS_TIMEOUT = 30                             #How long to wait for a GPS reading per attempt
 POST_MESSAGE_SLEEP = 15 #How long to wait between messages - affects GPS sample rate when connected
